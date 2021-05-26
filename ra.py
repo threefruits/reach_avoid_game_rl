@@ -10,11 +10,12 @@ import argparse
 from sac import SAC
 from gym import spaces
 from ra_env import ReachAvoidAgent
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="HalfCheetah-v2",
                     help='Mujoco Gym environment (default: HalfCheetah-v2)')
-parser.add_argument('--policy', default="Gaussian",
+parser.add_argument('--policy', default="Deterministic",
                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
@@ -51,7 +52,22 @@ args = parser.parse_args()
 
 env = ReachAvoidAgent()
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model("models/sac_actor_ra_35.0","models/sac_critic_ra_35.0")
+agent.load_model("models/pretrain","models/sac_critic_ra_3.0")
+# agent.load_model("models/sac_actor_ra_11.0","models/sac_critic_ra_11.0")
+
+def compute_done(a_state,d_state,times):
+    distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
+    # print(distance)
+    if (distance<0.2 or a_state[0]>1):
+        done_n = True
+    else:
+        done_n = False
+    if(times > 400):
+        done_n = True
+    if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
+        done_n = True
+    return done_n
+
 
 
 def compute_a(states):
@@ -81,6 +97,10 @@ d = np.array([0.4, 0.15, -3.14 ])
 initial_conditions = np.array([a,d]).T 
 r = robotarium.Robotarium(number_of_robots=N, show_figure=True, initial_conditions=initial_conditions,sim_in_real_time=False)
 
+def reset():
+    r.set_poses(initial_conditions)
+
+
 # Define goal points by removing orientation from poses
 goal_points = np.array(np.mat('0.5 1; -0.3 0.8 ; -0.6 0 '))
 
@@ -96,30 +116,32 @@ uni_barrier_cert = create_unicycle_barrier_certificate()
 x = r.get_poses().T
 r.step()
 
-record = np.zeros([400,6])
+record = np.zeros([40000,8])
 # np.save("filename.npy",a)
 # b = np.load("filename.npy")
 i=0
+times = 0
 # While the number of robots at the required poses is less
 # than N...
 while (np.size(at_pose(x.T, goal_points)) != N):
 
     # Get poses of agents
     x = r.get_poses().T
-    record[i] = x.flatten()
-    # print(x)
+    
     # Create unicycle control inputs
     # dxu = unicycle_pose_controller(x.T, goal_points)
     # print(dxu)
     # # Create safe control inputs (i.e., no collisions)
     # dxu = uni_barrier_cert(dxu, x.T)
     
-    u = MPC_controller(x[0],x[1])
-    # u = agent.select_action(x.flatten(), evaluate=True)
+    # u = MPC_controller(x[0],x[1])
+    u = agent.select_action(x.flatten(), evaluate=True)
+    record[i] = np.append(x.flatten(),np.array([u[0],u[1]]))
+    # 
     # u = CLF_CBF_controller(x[0],x[1])
     # u2 = MPC_controller_defence(x[0],x[1])
-    # u2 = Fast_Catch(x[0],x[1])
-    u2 = Fast_controller_defence(x[0],x[1])
+    u2 = Fast_Catch(x[0],x[1])
+    # u2 = Fast_controller_defence(x[0],x[1])
     
     dxu = np.zeros([2,2])
     dxu[0] = np.array([u[0],u[1]])
@@ -128,9 +150,12 @@ while (np.size(at_pose(x.T, goal_points)) != N):
     r.set_velocities(np.arange(N), dxu.T)
     # r.set_velocities(np.array([0,1]), np.array([[0.1,-0.1],[0.1,-0.1]]) )
     # Iterate the simulation
+    times+=1
     i+=1
-    if(i<390):
-        np.save("record.npy",record)
+    if(compute_done(x[0],x[1],times)==True):
+        reset()
+        times = 0
+
     r.step()
 
 #Call at end of script to print debug information and for your script to run on the Robotarium server properly

@@ -22,14 +22,15 @@ class ReachAvoidAgent(core.Env):
         self._max_episode_steps = 400
         self.times = 0
 
-    def step(self, action, k):
+    def step(self, action, k=2):
 
         dxu = np.zeros([2,2])
         dxu[0] = action
         noise = np.array([ np.random.rand() * 0.1 - 0.05, np.random.rand() * 0.4 - 0.2 ])
-        p = np.random.rand()
+        
+        
         if(k==1):
-            dxu[1] = Fast_controller_defence(self.states[0],self.states[1]) + noise
+            dxu[1] = Fast_controller_defence(self.states[0],self.states[1]) + noise 
         if(k==2):
             dxu[1] = Fast_Catch(self.states[0],self.states[1]) + noise
         if(k==3):
@@ -55,20 +56,23 @@ class ReachAvoidAgent(core.Env):
         d_state = self.states[1]
         r = 0
         distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
-        goal_cost = self.states[0,0]
+        goal_cost = self.states[0,0] - 1
 
-        r += 2*goal_cost
-        if (goal_cost>=1):
-            r += 2000
+        
         if (goal_cost>=0):
-            r += goal_cost*10
+            r += 2000
+        if (goal_cost>=-1):
+            r += goal_cost*0.2
+        else:
+            r += 2*goal_cost
+
         if (distance<0.2):
             r -= 1000
         else: 
             r += 0.01*distance
 
         if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
-            r -= 1000
+            r -= 1500
         
         return r
 
@@ -90,8 +94,12 @@ class ReachAvoidAgent(core.Env):
     def reset(self, if_show_figure=False):
         plt.close()
         self.times = 0
-        a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 ,0])
-        d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 , np.pi + np.random.rand() * 0.4 - 0.2 ])
+        # a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 , np.random.rand() * 0.4 - 0.2 ])
+        # d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 , np.pi + np.random.rand() * 0.4 - 0.2 ])
+
+        a = np.array([-1 + np.random.rand() * 1 - 0.45, np.random.rand() * 1.4 - 0.7 , np.random.rand() * 1.4 - 0.7 ])
+        d = np.array([ 0.1 + np.random.rand() * 1 - 0.5 ,np.random.rand() * 1.4 - 0.7 , np.pi + np.random.rand() * 1.4 - 0.7 ])
+
         self.initial_conditions = np.array([a,d]).T 
         self.agents = robotarium.Robotarium(number_of_robots=2, show_figure=if_show_figure, initial_conditions=self.initial_conditions,sim_in_real_time=False)
         self.states = self.agents.get_poses().T
@@ -114,19 +122,49 @@ class ReachAvoidAgent(core.Env):
 
 if __name__ == '__main__':
     env = ReachAvoidAgent()
-    # i =0 
+    i =0 
     state = env.reset()
+    record = []
+    
+    # agent = SAC(env.observation_space.shape[0], env.action_space, args)
+    # # agent.load_model("models/pretrain","models/sac_critic_ra_3.0")
+    # agent.load_model("models/sac_actor_ra_3.0","models/sac_critic_ra_3.0")
+
+    p = np.random.rand()
+    k=0
+    if (p>0.4):
+        k=1
+    elif (0.4<=p<0.8):
+        k=2
+    else:
+        k=3
     while True:
         # print(env.action_space.shape)
-        act_n = []
-        act_n = np.array([1,0])
+        # act_n = []
+        # act_n = np.array([1,1])
         # act_n = MPC_controller(state[:3],state[3:])
-        # print(state[3:])
         # act_n = env.action_space.sample()
-        obs_n, reward_n, done_n, _ = env.step(act_n)
+        # act_n = agent.select_action(state, evaluate=True)
+
+        record.append( np.append(state,np.array([act_n[0],act_n[1]])) )
+
+        
+        obs_n, reward_n, done_n, _ = env.step(act_n,k)
+        state = obs_n
+        i=i+1
+        np.save("record.npy",record)
+
         if(done_n == True):
             print(env.times)
             env.reset(True)
+            p = np.random.rand()
+            k=0
+            if (p>0.4):
+                k=1
+            elif (0.4<=p<0.8):
+                k=2
+            else:
+                k=3
             
             
         # print(done_n)

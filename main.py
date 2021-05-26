@@ -12,7 +12,7 @@ from ra_env import ReachAvoidAgent
 parser = argparse.ArgumentParser(description='PyTorch Soft Actor-Critic Args')
 parser.add_argument('--env-name', default="HalfCheetah-v2",
                     help='Mujoco Gym environment (default: HalfCheetah-v2)')
-parser.add_argument('--policy', default="Gaussian",
+parser.add_argument('--policy', default="Deterministic",
                     help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 parser.add_argument('--eval', type=bool, default=True,
                     help='Evaluates a policy a policy every 10 episode (default: True)')
@@ -20,7 +20,7 @@ parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
-parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
+parser.add_argument('--lr', type=float, default=0.000001, metavar='G',
                     help='learning rate (default: 0.0003)')
 parser.add_argument('--alpha', type=float, default=0.2, metavar='G',
                     help='Temperature parameter α determines the relative importance of the entropy\
@@ -37,7 +37,7 @@ parser.add_argument('--hidden_size', type=int, default=256, metavar='N',
                     help='hidden size (default: 256)')
 parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
                     help='model updates per simulator step (default: 1)')
-parser.add_argument('--start_steps', type=int, default=1000, metavar='N',
+parser.add_argument('--start_steps', type=int, default=0, metavar='N',
                     help='Steps sampling random actions (default: 10000)')
 parser.add_argument('--target_update_interval', type=int, default=1, metavar='N',
                     help='Value target update per no. of updates per step (default: 1)')
@@ -61,7 +61,8 @@ np.random.seed(args.seed)
 
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model("models/sac_actor_ra_11.0","models/sac_critic_ra_11.0")
+agent.load_model("models/pretrain","models/sac_critic_ra_23.0")
+# agent.load_model("models/sac_actor_ra_11.0",)
 
 #Tesnorboard
 writer = SummaryWriter('runs/{}_SAC_{}_{}_{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), args.env_name,
@@ -81,9 +82,9 @@ for i_episode in itertools.count(1):
     state = env.reset()
 
     p = np.random.rand()
-    if(0<p<0.6):
+    if(0<p<0.4):
         k=1
-    if(0.6<=p<0.8):
+    if(0.4<=p<0.8):
         k=2
     if(0.8<p):
         k=3
@@ -157,4 +158,3 @@ for i_episode in itertools.count(1):
         print("----------------------------------------")
 
 env.close()
-

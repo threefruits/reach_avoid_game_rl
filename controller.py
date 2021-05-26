@@ -157,7 +157,7 @@ def MPC_controller(a_state,d_state):
     Q2 = np.array([[1.0, 0.0, 0.0],[0.0, 1.0, 0.0],[0.0, 0.0, 0.0]])
     R = np.array([[0.5, 0.0], [0.0, 0.001]])
     W_slack = np.array([[1000]])
-    goal = np.array([[1.0, 0.0, 0.0]])
+    goal = np.array([[1.1, 0.0, 0.0]])
     #### cost function
     obj = 0 #### cost
     d_ = np.array([[d_state[0],d_state[1],d_state[2]]])
@@ -166,7 +166,7 @@ def MPC_controller(a_state,d_state):
 
     opti.minimize(obj)
     opti.subject_to(opti.bounded(-2.0, x, 2.0))
-    opti.subject_to(opti.bounded(-1.0, y, 1.0))
+    opti.subject_to(opti.bounded(-1.0, y, 1.00))
     opti.subject_to(opti.bounded(-v_max, v, v_max))
     opti.subject_to(opti.bounded(-omega_max, omega, omega_max))    
     opts_setting = {'ipopt.max_iter':500, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}
@@ -177,7 +177,7 @@ def MPC_controller(a_state,d_state):
     sol = opti.solve()
     u_res = sol.value(opt_controls)
     slack = sol.value(d_slack)
-    print(slack)
+    # print(slack)
     return u_res[0, :]
 
 
