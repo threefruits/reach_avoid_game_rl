@@ -26,9 +26,9 @@ def Fast_Catch(a_state,d_state):
     if(theta_e>np.pi/2 or theta_e<-np.pi/2):
         is_poistive = -1
 
-    u = 1*distance*is_poistive
+    u = 1.5*distance*is_poistive
     w = theta_e*is_poistive
-    u = np.clip(u, -0.4, 0.4)
+    u = np.clip(u, -0.5, 0.5)
     w = np.clip(w, -2, 2)
     return np.array([u,w])
 
@@ -36,6 +36,7 @@ def Fast_controller_defence(a_state,d_state):
     is_poistive = 1
     g = a_state.copy()
     g[0] = 0.5*g[0] + 0.5*1
+    g[1] = 0.5*g[1] + 0.5*1
     distance = np.sqrt(np.sum(np.square(g[:2] - d_state[:2])))
     dx =g[0] - d_state[0]
     dy =g[1] - d_state[1]
@@ -121,7 +122,7 @@ def MPC_controller_defence(a_state,d_state):
 
 def MPC_controller(a_state,d_state):
     T = 0.05
-    N = 20
+    N = 10
     v_max = 0.5
     omega_max = 2
 
@@ -151,13 +152,13 @@ def MPC_controller(a_state,d_state):
         opti.subject_to(opt_states[i+1, :]==x_next)
         # opti.subject_to(opt_states[i+1, 1]<=10)
         distance_constraints_ = (opt_states[i, 0].T - d_state[0]) ** 2 + (opt_states[i, 1].T - d_state[1]) ** 2 
-        opti.subject_to(distance_constraints_ >= 0.09 + d_slack[i, :])
+        opti.subject_to(distance_constraints_ >= 0.12 + d_slack[i, :])
 
-    Q = np.array([[1.0, 0.0, 0.0],[0.0, 0.0, 0.0],[0.0, 0.0, 0.0]])
+    Q = np.array([[1.0, 0.0, 0.0],[0.0, 1.0, 0.0],[0.0, 0.0, 0.0]])
     Q2 = np.array([[1.0, 0.0, 0.0],[0.0, 1.0, 0.0],[0.0, 0.0, 0.0]])
     R = np.array([[0.5, 0.0], [0.0, 0.001]])
     W_slack = np.array([[1000]])
-    goal = np.array([[1.1, 0.0, 0.0]])
+    goal = np.array([[1.2, 1.2, 0.0]])
     #### cost function
     obj = 0 #### cost
     d_ = np.array([[d_state[0],d_state[1],d_state[2]]])
@@ -165,8 +166,8 @@ def MPC_controller(a_state,d_state):
         obj = obj + ca.mtimes([(opt_states[i, :] - goal), Q, (opt_states[i, :]- goal).T]) + ca.mtimes([opt_controls[i, :], R, opt_controls[i, :].T]) + ca.mtimes([d_slack[i, :], W_slack, d_slack[i, :].T])
 
     opti.minimize(obj)
-    opti.subject_to(opti.bounded(-2.0, x, 2.0))
-    opti.subject_to(opti.bounded(-1.0, y, 1.00))
+    opti.subject_to(opti.bounded(-1.45, x, 1.45))
+    opti.subject_to(opti.bounded(-1.45, y, 1.45))
     opti.subject_to(opti.bounded(-v_max, v, v_max))
     opti.subject_to(opti.bounded(-omega_max, omega, omega_max))    
     opts_setting = {'ipopt.max_iter':500, 'ipopt.print_level':0, 'print_time':0, 'ipopt.acceptable_tol':1e-8, 'ipopt.acceptable_obj_change_tol':1e-6}

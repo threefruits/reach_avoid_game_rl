@@ -51,8 +51,8 @@ if __name__ == '__main__':
     record = []
     
     agent = SAC(env.observation_space.shape[0], env.action_space, args)
-    # agent.load_model("models/pretrain",None)
-    # agent.load_model("models/sac_actor_ra_1.0","models/sac_critic_ra_1.0")
+    agent.load_model("models/pretrain",None)
+    agent.load_model("models/save2/mpc_actor","models/save2/mpc_critic")
     p = np.random.rand()
     k=0
     if (p>0.4):
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     while True:
         # print(env.action_space.shape)
         # act_n = []
-        # act_n = np.array([1,1])
+        # act_n = np.array([0,0])
         # act_n = MPC_controller(state[:3],state[3:])
         # act_n = env.action_space.sample()
         act_n = agent.select_action(state, evaluate=True)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             p = np.random.rand()
             k=0
             if (p>0.4):
-                k=1
+                k=2
             elif (0.4<=p<0.8):
                 k=2
             else:

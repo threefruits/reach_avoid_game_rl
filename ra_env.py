@@ -13,8 +13,8 @@ class ReachAvoidAgent(core.Env):
         self.action_space = spaces.Box(low=-self.u_range, high=+self.u_range, shape=(2,), dtype=np.float32)
         self.observation_space = spaces.Box(low=-np.inf, high=+np.inf, shape=(6,), dtype=np.float32)
         
-        a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 ,0])
-        d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 ])
+        a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 , 0])
+        d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,0.5 + np.random.rand() * 0.4 - 0.2 , np.pi + np.random.rand() * 0.4 - 0.2 ])
         self.initial_conditions = np.array([a,d]).T 
         self.agents = robotarium.Robotarium(number_of_robots=2, show_figure=False, initial_conditions=self.initial_conditions,sim_in_real_time=False)
         self.states = self.agents.get_poses().T
@@ -34,7 +34,7 @@ class ReachAvoidAgent(core.Env):
         if(k==2):
             dxu[1] = Fast_Catch(self.states[0],self.states[1]) + noise
         if(k==3):
-            dxu[1] = np.array([ 0.2 + np.random.rand() * 0.1 - 0.05, np.random.rand() * 2 - 1 ])
+            dxu[1] = np.array([ 0.3 + np.random.rand() * 0.1 - 0.05, np.random.rand() * 2 - 1 ])
         # dxu[1] = np.array([ 0,0])
         # dxu[1] = Fast_controller_defence(self.states[0],self.states[1])
         # dxu[1] = Fast_Catch
@@ -50,29 +50,37 @@ class ReachAvoidAgent(core.Env):
         self.times += 1
         return state, reward, done, {}
 
+    def check_goal(self, a_state):
+        if( 0.5<=a_state[0]<=1.5 and 0.5<=a_state[1]<=1.5 ):
+            return True
+        else:
+            return False
+
 
     def _get_reward(self):
         a_state = self.states[0]
         d_state = self.states[1]
         r = 0
         distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
-        goal_cost = self.states[0,0] - 1
+        distance_goal = - np.sqrt(np.sum(np.square(a_state[:2] - np.array([1,1]) )))
 
         
-        if (goal_cost>=0):
+        if (self.check_goal(a_state)):
             r += 2000
-        if (goal_cost>=-1):
-            r += goal_cost*0.2
+        elif(a_state[1]>-0.5 and a_state[0]>-0.5):
+            r += 0.25*distance_goal
+        elif(a_state[1]>0.0 and a_state[0]>0.0):
+            r += 0.05*distance_goal
         else:
-            r += 2*goal_cost
+            r += distance_goal
 
-        if (distance<0.2):
+        if (distance<0.28):
             r -= 1000
         else: 
             r += 0.01*distance
 
-        if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
-            r -= 1500
+        if (a_state[1]>1.5 or a_state[1]<-1.5 or a_state[0]<-1.5 or a_state[0]>1.5):
+            r -= 2000
         
         return r
 
@@ -81,13 +89,13 @@ class ReachAvoidAgent(core.Env):
         d_state = self.states[1]
         distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
         # print(distance)
-        if (distance<0.2 or a_state[0]>1):
+        if (distance<0.28 or self.check_goal(a_state)):
             done_n = True
         else:
             done_n = False
         if(self.times > self._max_episode_steps):
             done_n = True
-        if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
+        if (a_state[1]>1.5 or a_state[1]<-1.5 or a_state[0]<-1.5 or a_state[0]>1.5):
             done_n = True
         return done_n
 
@@ -96,9 +104,14 @@ class ReachAvoidAgent(core.Env):
         self.times = 0
         # a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 , np.random.rand() * 0.4 - 0.2 ])
         # d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 , np.pi + np.random.rand() * 0.4 - 0.2 ])
-
-        a = np.array([-1 + np.random.rand() * 1 - 0.45, np.random.rand() * 1.4 - 0.7 , np.random.rand() * 1.4 - 0.7 ])
-        d = np.array([ 0.1 + np.random.rand() * 1 - 0.5 ,np.random.rand() * 1.4 - 0.7 , np.pi + np.random.rand() * 1.4 - 0.7 ])
+        p = np.random.rand()
+        if (p>0.33):
+            a = np.array([-1.0 + np.random.rand() * 0.8 - 0.4, -1.0 + np.random.rand() * 0.8 - 0.4 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        elif (0.33<=p<0.67):
+            a = np.array([-1.0 + np.random.rand() * 0.8 - 0.4, 0.5 + np.random.rand() * 1.8 - 0.9 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        else:
+            a = np.array([0.5 + np.random.rand() * 1.8 - 0.9, -1.0 + np.random.rand() * 0.8 - 0.4 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        d = np.array([0.5 + np.random.rand() * 1.8 - 0.9 ,0.5 + np.random.rand() * 1.8 - 0.9 , -3*np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
 
         self.initial_conditions = np.array([a,d]).T 
         self.agents = robotarium.Robotarium(number_of_robots=2, show_figure=if_show_figure, initial_conditions=self.initial_conditions,sim_in_real_time=False)

@@ -22,7 +22,7 @@ class ReachAvoidAgent_Def(core.Env):
         self._max_episode_steps = 400
         self.times = 0
         self.net = DeterministicPolicy(6, 2, 256, self.action_space).to('cuda')
-        self.net.load_state_dict(torch.load("models/save/pretrain"))
+        self.net.load_state_dict(torch.load("models/save2/pretrain"))
 
     def step(self, action, k=1):
 
@@ -32,8 +32,8 @@ class ReachAvoidAgent_Def(core.Env):
         
         
         inp = torch.FloatTensor(self.states.flatten()).to("cuda").unsqueeze(0)
-        dxu[0] = self.net(inp).detach().cpu().numpy()[0]
-
+        dxu[0] = self.net(inp).detach().cpu().numpy()[0] + noise
+        dxu[0] = MPC_controller(self.states.flatten()[:3],self.states.flatten()[3:])
         dxu[1] = action
         # if(k==1):
         #     dxu[1] = Fast_controller_defence(self.states[0],self.states[1]) + noise 
@@ -57,25 +57,37 @@ class ReachAvoidAgent_Def(core.Env):
         return state, reward, done, {}
 
 
+    def check_goal(self, a_state):
+        if( 0.5<=a_state[0]<=1.5 and 0.5<=a_state[1]<=1.5 ):
+            return True
+        else:
+            return False
+
+
     def _get_reward(self):
         a_state = self.states[0]
         d_state = self.states[1]
         r = 0
         distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
-        goal_cost = self.states[0,0]
+        distance_goal = - np.sqrt(np.sum(np.square(a_state[:2] - np.array([1,1]) )))
 
-        r += 2*goal_cost
-        if (goal_cost>=1):
+        
+        if (self.check_goal(a_state)):
             r += 2000
-        if (goal_cost>=0):
-            r += goal_cost*10
-        if (distance<0.2):
+        elif(a_state[1]>-0.5 and a_state[0]>-0.5):
+            r += 0.25*distance_goal
+        elif(a_state[1]>0.0 and a_state[0]>0.0):
+            r += 0.05*distance_goal
+        else:
+            r += distance_goal
+
+        if (distance<0.28):
             r -= 1000
         else: 
             r += 0.01*distance
 
-        if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
-            r -= 1000
+        if (a_state[1]>1.5 or a_state[1]<-1.5 or a_state[0]<-1.5 or a_state[0]>1.5):
+            r -= 2000
         
         return -r
 
@@ -84,15 +96,16 @@ class ReachAvoidAgent_Def(core.Env):
         d_state = self.states[1]
         distance = np.sqrt(np.sum(np.square(a_state[:2] - d_state[:2])))
         # print(distance)
-        if (distance<0.2 or a_state[0]>1):
+        if (distance<0.28 or self.check_goal(a_state)):
             done_n = True
         else:
             done_n = False
         if(self.times > self._max_episode_steps):
             done_n = True
-        if (a_state[1]>1 or a_state[1]<-1 or a_state[0]<-1.5):
+        if (a_state[1]>1.5 or a_state[1]<-1.5 or a_state[0]<-1.5 or a_state[0]>1.5):
             done_n = True
         return done_n
+
 
     def reset(self, if_show_figure=False):
         plt.close()
@@ -100,8 +113,15 @@ class ReachAvoidAgent_Def(core.Env):
         # a = np.array([-1 + np.random.rand() * 0.4 - 0.2, np.random.rand() * 0.8 - 0.4 , np.random.rand() * 0.4 - 0.2 ])
         # d = np.array([0.5 + np.random.rand() * 0.4 - 0.2 ,np.random.rand() * 0.4 - 0.2 , np.pi + np.random.rand() * 0.4 - 0.2 ])
 
-        a = np.array([-1 + np.random.rand() * 1 - 0.5, np.random.rand() * 1.4 - 0.7 , np.random.rand() * 1.4 - 0.7 ])
-        d = np.array([ 0.1 + np.random.rand() * 1 - 0.5 ,np.random.rand() * 1.4 - 0.7 , np.pi + np.random.rand() * 1.4 - 0.7 ])
+        p = np.random.rand()
+        if (p>0.33):
+            a = np.array([-1.0 + np.random.rand() * 0.8 - 0.4, -1.0 + np.random.rand() * 0.8 - 0.4 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        elif (0.33<=p<0.67):
+            a = np.array([-1.0 + np.random.rand() * 0.8 - 0.4, 0.5 + np.random.rand() * 1.8 - 0.9 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        else:
+            a = np.array([0.5 + np.random.rand() * 1.8 - 0.9, -1.0 + np.random.rand() * 0.8 - 0.4 , np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+        d = np.array([0.5 + np.random.rand() * 1.8 - 0.9 ,0.5 + np.random.rand() * 1.8 - 0.9 , -3*np.pi/4 + np.random.rand() * np.pi/2 - np.pi/4 ])
+
 
         self.initial_conditions = np.array([a,d]).T 
         self.agents = robotarium.Robotarium(number_of_robots=2, show_figure=if_show_figure, initial_conditions=self.initial_conditions,sim_in_real_time=False)

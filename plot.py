@@ -24,7 +24,6 @@ loader = Data.DataLoader(
     dataset=torch_dataset,      # torch TensorDataset format
     batch_size=BATCH_SIZE,      # mini batch size
     shuffle=True,               # 要不要打乱数据 (打乱比较好)
-    num_workers=2,              # 多线程来读数据
 )
 
 

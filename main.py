@@ -20,7 +20,7 @@ parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor for reward (default: 0.99)')
 parser.add_argument('--tau', type=float, default=0.005, metavar='G',
                     help='target smoothing coefficient(τ) (default: 0.005)')
-parser.add_argument('--lr', type=float, default=0.000001, metavar='G',
+parser.add_argument('--lr', type=float, default=0.0003, metavar='G',
                     help='learning rate (default: 0.0003)')
 parser.add_argument('--alpha', type=float, default=0.2, metavar='G',
                     help='Temperature parameter α determines the relative importance of the entropy\
@@ -61,7 +61,7 @@ np.random.seed(args.seed)
 
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model("models/pretrain","models/sac_critic_ra_23.0")
+agent.load_model("models/pretrain",None)
 # agent.load_model("models/sac_actor_ra_11.0",)
 
 #Tesnorboard
@@ -83,7 +83,7 @@ for i_episode in itertools.count(1):
 
     p = np.random.rand()
     if(0<p<0.4):
-        k=1
+        k=2
     if(0.4<=p<0.8):
         k=2
     if(0.8<p):

@@ -53,7 +53,7 @@ if __name__ == '__main__':
     
     agent = SAC(env.observation_space.shape[0], env.action_space, args)
     # agent.load_model("models/pretrain",None)
-    agent.load_model("models/sac_actor_ra_41.0","models/sac_critic_ra_41.0")
+    agent.load_model("models/sac_actor_ra_26.0","models/sac_critic_ra_26.0")
     p = np.random.rand()
     k=0
     if (p>0.4):
