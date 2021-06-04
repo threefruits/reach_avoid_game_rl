@@ -22,7 +22,7 @@ class ReachAvoidAgent_Def(core.Env):
         self._max_episode_steps = 400
         self.times = 0
         self.net = DeterministicPolicy(6, 2, 256, self.action_space).to('cuda')
-        self.net.load_state_dict(torch.load("models/save2/pretrain"))
+        # self.net.load_state_dict(torch.load("models/save2/pretrain"))
 
     def step(self, action, k=1):
 
@@ -31,9 +31,9 @@ class ReachAvoidAgent_Def(core.Env):
         noise = np.array([ np.random.rand() * 0.1 - 0.05, np.random.rand() * 0.4 - 0.2 ])
         
         
-        inp = torch.FloatTensor(self.states.flatten()).to("cuda").unsqueeze(0)
-        dxu[0] = self.net(inp).detach().cpu().numpy()[0] + noise
-        dxu[0] = MPC_controller(self.states.flatten()[:3],self.states.flatten()[3:])
+        # inp = torch.FloatTensor(self.states.flatten()).to("cuda").unsqueeze(0)
+        # dxu[0] = self.net(inp).detach().cpu().numpy()[0] + noise
+        dxu[0] = MPC_controller(self.states.flatten()[:3],self.states.flatten()[3:])+ noise
         dxu[1] = action
         # if(k==1):
         #     dxu[1] = Fast_controller_defence(self.states[0],self.states[1]) + noise 

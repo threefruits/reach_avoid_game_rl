@@ -61,7 +61,7 @@ np.random.seed(args.seed)
 
 # Agent
 agent = SAC(env.observation_space.shape[0], env.action_space, args)
-agent.load_model("models/pretrain",None)
+# agent.load_model("models/pretrain",None)
 # agent.load_model("models/sac_actor_ra_11.0",)
 
 #Tesnorboard

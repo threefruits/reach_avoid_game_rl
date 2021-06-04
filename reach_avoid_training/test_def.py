@@ -51,9 +51,9 @@ if __name__ == '__main__':
     state = env.reset()
     record = []
     
-    agent = SAC(env.observation_space.shape[0], env.action_space, args)
+    # agent = SAC(env.observation_space.shape[0], env.action_space, args)
     # agent.load_model("models/pretrain",None)
-    agent.load_model("models/sac_actor_ra_26.0","models/sac_critic_ra_26.0")
+    # agent.load_model("models/sac_actor_ra_26.0","models/sac_critic_ra_26.0")
     p = np.random.rand()
     k=0
     if (p>0.4):
@@ -68,8 +68,8 @@ if __name__ == '__main__':
         # act_n = np.array([10,10])
         # act_n = MPC_controller(state[:3],state[3:])
         # act_n = env.action_space.sample()
-        act_n = agent.select_action(state, evaluate=True)
-        # act_n=Fast_Catch(state[:3],state[3:])
+        # act_n = agent.select_action(state, evaluate=True)
+        act_n=Fast_Catch(state[:3],state[3:])
         # record.append( np.append(state,np.array([act_n[0],act_n[1]])) )
 
         
